@@ -11,7 +11,7 @@ contract ZkBugBounty {
     constructor(
         address _owner,
         address _stateTransitionVerifier,
-        address _hashVerifier,
+        address _hashVerifier
     ) public {
         owner = _owner;
         stateTransitionVerifier = _stateTransitionVerifier;
@@ -72,4 +72,15 @@ contract ZkBugBounty {
         }
     }
 
+    function upgradeStateTransitionVerifier(address _stateTransitionVerifier) public {
+        if (msg.sender == owner) {
+            stateTransitionVerifier = _stateTransitionVerifier;
+        }
+    }
+
+    function upgradeHashVerifier(address _hashVerifier) public {
+        if (msg.sender == owner) {
+            hashVerifier = _hashVerifier;
+        }
+    }
 }
