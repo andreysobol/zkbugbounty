@@ -7,6 +7,7 @@ contract ZkBugBounty {
     address public owner;
     address public stateTransitionVerifier;
     address public hashVerifier;
+    bytes32 public currentState;
 
     constructor(
         address _owner,
@@ -29,11 +30,17 @@ contract ZkBugBounty {
         return true;
     }
 
-    function businessLogic(bytes calldata transition, bytes32 nextState /*, proofData */) public {
+    function businessLogic(bytes calldata transition, bytes32 nextState, bytes calldata proofData) public {
         if (!stop) {
             bytes32 transitionHash = sha256(transition);
-            
-            /* verify_proof(proofData, transitionHash, nextState) */
+            if (verifyStateTransitionProof(
+                currentState,
+                transition,
+                nextState,
+                proofData
+            )) {
+                currentState = nextState;
+            }
         }
         return;
     }
