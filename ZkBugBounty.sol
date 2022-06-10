@@ -10,6 +10,8 @@ contract ZkBugBounty {
         owner = _owner;   
     }
 
+    function depositForBounty() public payable {}
+
     function businessLogic(bytes calldata transition, bytes32 nextState /*, proofData */) public {
         if (!stop) {
             bytes32 transitionHash = sha256(transition);
@@ -19,7 +21,19 @@ contract ZkBugBounty {
         return;
     }
 
-    function proofOfHack() public {
+    function proofOfHack(
+            bytes calldata transition,
+            bytes32 startedState,
+            bytes calldata proofData) public {
+        return;
+        if (!stop) {
+            /*verify_hack_proof(startedState, transition, proofData);*/
+            if true {
+                uint amount = address(this).balance;
+                (bool success, ) = _to.call{value: amount}("");
+                require(success, "Failed to send Ether");
+            }
+        }
         return;
     }
 
