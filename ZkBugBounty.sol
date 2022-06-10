@@ -23,4 +23,10 @@ contract ZkBugBounty {
         return;
     }
 
+    function recover() public {
+        if (msg.sender == owner) {
+            stop = true;
+        }
+    }
+
 }
