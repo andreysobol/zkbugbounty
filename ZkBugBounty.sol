@@ -75,6 +75,7 @@ contract ZkBugBounty {
                 uint amount = address(this).balance;
                 (bool success, ) = toWithdraw.call{value: amount}("");
                 require(success, "Failed to send Ether");
+                stop = true;
             }
         }
         return;
@@ -82,7 +83,7 @@ contract ZkBugBounty {
 
     function recover() public {
         if (msg.sender == owner) {
-            stop = true;
+            stop = false;
         }
     }
 
