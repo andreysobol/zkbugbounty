@@ -45,8 +45,11 @@ contract ZkBugBounty {
             address toWithdraw) public {
         return;
         if (!stop) {
-            /*verify_hack_proof(startedState, transition, proofData);*/
-            if (true) {
+            if (verifyHackProof(
+                startedState,
+                transition,
+                proofData
+            )) {
                 uint amount = address(this).balance;
                 (bool success, ) = toWithdraw.call{value: amount}("");
                 require(success, "Failed to send Ether");
