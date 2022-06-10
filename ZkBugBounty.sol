@@ -54,7 +54,11 @@ contract ZkBugBounty {
         bytes calldata transition,
         bytes calldata proofData
     ) private returns (bool) {
-        return true;
+        return hackVerifier.verify(
+            startedState,
+            transition,
+            proofData
+        );
     }
 
     function proofOfHack(
