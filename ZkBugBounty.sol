@@ -2,23 +2,24 @@
 pragma solidity ^0.8.13;
 
 import "./IStateTransitionVerifier.sol";
+import "./IHackVerifier.sol";
 
 contract ZkBugBounty {
 
     bool public stop = false;
     address public owner;
     IStateTransitionVerifier public stateTransitionVerifier;
-    address public hashVerifier;
+    IHackVerifier public hackVerifier;
     bytes32 public currentState;
 
     constructor(
         address _owner,
         IStateTransitionVerifier _stateTransitionVerifier,
-        address _hashVerifier
+        IHackVerifier _hackVerifier
     ) public {
         owner = _owner;
         stateTransitionVerifier = _stateTransitionVerifier;
-        hashVerifier = _hashVerifier;
+        hackVerifier = _hackVerifier;
     }
 
     function depositForBounty() public payable {}
@@ -87,9 +88,9 @@ contract ZkBugBounty {
         }
     }
 
-    function upgradeHashVerifier(address _hashVerifier) public {
+    function upgradeHashVerifier(IHackVerifier _hackVerifier) public {
         if (msg.sender == owner) {
-            hashVerifier = _hashVerifier;
+            hackVerifier = _hackVerifier;
         }
     }
 }
