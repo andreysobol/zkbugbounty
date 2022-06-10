@@ -12,6 +12,15 @@ contract ZkBugBounty {
 
     function depositForBounty() public payable {}
 
+    function verifyStateTransitionProof(
+        bytes32 prevState,
+        bytes calldata transition,
+        bytes32 nextState,
+        bytes calldata proofData
+    ) private returns (bool) {
+        return true;
+    }
+
     function businessLogic(bytes calldata transition, bytes32 nextState /*, proofData */) public {
         if (!stop) {
             bytes32 transitionHash = sha256(transition);
@@ -21,16 +30,25 @@ contract ZkBugBounty {
         return;
     }
 
+    function verifyHackProof(
+        bytes32 startedState,
+        bytes calldata transition,
+        bytes calldata proofData
+    ) private returns (bool) {
+        return true;
+    }
+
     function proofOfHack(
             bytes calldata transition,
             bytes32 startedState,
-            bytes calldata proofData) public {
+            bytes calldata proofData,
+            address toWithdraw) public {
         return;
         if (!stop) {
             /*verify_hack_proof(startedState, transition, proofData);*/
-            if true {
+            if (true) {
                 uint amount = address(this).balance;
-                (bool success, ) = _to.call{value: amount}("");
+                (bool success, ) = toWithdraw.call{value: amount}("");
                 require(success, "Failed to send Ether");
             }
         }
