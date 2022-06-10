@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
+import "./IStateTransitionVerifier.sol";
+
 contract ZkBugBounty {
 
     bool public stop = false;
     address public owner;
-    address public stateTransitionVerifier;
+    IStateTransitionVerifier public stateTransitionVerifier;
     address public hashVerifier;
     bytes32 public currentState;
 
     constructor(
         address _owner,
-        address _stateTransitionVerifier,
+        IStateTransitionVerifier _stateTransitionVerifier,
         address _hashVerifier
     ) public {
         owner = _owner;
@@ -27,7 +29,8 @@ contract ZkBugBounty {
         bytes32 nextState,
         bytes calldata proofData
     ) private returns (bool) {
-        return true;
+        //return true;
+        return stateTransitionVerifier.verify(prevState, transition, nextState, proofData);
     }
 
     function businessLogic(bytes calldata transition, bytes32 nextState, bytes calldata proofData) public {
@@ -78,7 +81,7 @@ contract ZkBugBounty {
         }
     }
 
-    function upgradeStateTransitionVerifier(address _stateTransitionVerifier) public {
+    function upgradeStateTransitionVerifier(IStateTransitionVerifier _stateTransitionVerifier) public {
         if (msg.sender == owner) {
             stateTransitionVerifier = _stateTransitionVerifier;
         }
