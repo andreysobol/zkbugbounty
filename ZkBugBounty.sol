@@ -51,7 +51,6 @@ contract ZkBugBounty {
             bytes32 startedState,
             bytes calldata proofData,
             address toWithdraw) public {
-        return;
         if (!stop) {
             if (verifyHackProof(
                 startedState,
