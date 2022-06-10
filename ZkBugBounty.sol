@@ -5,9 +5,17 @@ contract ZkBugBounty {
 
     bool public stop = false;
     address public owner;
+    address public stateTransitionVerifier;
+    address public hashVerifier;
 
-    constructor(address _owner) public {
-        owner = _owner;   
+    constructor(
+        address _owner,
+        address _stateTransitionVerifier,
+        address _hashVerifier,
+    ) public {
+        owner = _owner;
+        stateTransitionVerifier = _stateTransitionVerifier;
+        hashVerifier = _hashVerifier;
     }
 
     function depositForBounty() public payable {}
