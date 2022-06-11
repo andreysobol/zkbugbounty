@@ -61,6 +61,11 @@ cat ./hardhat/contracts/VerificationKey.sol | sed 's%import "hardhat/console.sol
 
 ### Compile Smart Contracts
 
+```
+cd contracts
+npx hardhat compile
+```
+
 ### Deploy Smart Contracts
 
 ### Run user transaction
