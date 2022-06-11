@@ -81,11 +81,11 @@ And you will get contract adresses
 
 ### Run user transaction
 
-`TODO!: ` make proper tooling for this
+`TODO!:` make proper tooling for this
 
 ### Run proof of hack
 
-`TODO!: ` make proper tooling for this
+`TODO!:` make proper tooling for this
 
 ## Meme
 
