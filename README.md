@@ -12,13 +12,6 @@ We propose to write system, where hacker can prove **formally** and **mathematic
 
 All business logic of user function (for example function `transfer`in some pseudoERC20 Token ) will be implemented as ZK circuit. For example if user Alice want to send money to user Bob - Alice will generate zk proof which will change state of full system from `state0` to `state1`. This proof we will call `State Transition Proof`
 
-```
-cd circuit/solidity_plonk_verifier/
-cargo build --release
-./target/release/solidity_plonk_verifier --verification-key PATH_TO_KEY
-cat ./hardhat/contracts/VerificationKey.sol | sed 's%import "hardhat/console.sol";% %g' > PATH_TO_SC/VerificationKey.sol
-```
-
 ### Hack Proof
 
 Imagine that some hacker found vulnerability. He get on of the historical state of the system `stateX` and apply to this some correct state transitions (when for example Alice send money to Bob and Bob send money to Carrel). And prove this state transition using the same circuit which called `State Transition Proof` as is done by regular user Alice. And if result of this manipulation goes to `incorrectState`: for example money supply was increased - he can easelly prove it using zk. Creteria and rules for inc `incorrectState` should be provided by developers of system and should be part of the `Hack Proof`. Also public input `Hack Proof`should be encrypted by contract owner public key. That's mean that only contract owner will understand where he have problem
@@ -33,3 +26,16 @@ We have few Secondary Functions:
 - `depositForBounty`
 - `upgradeStateTransitionVerifier`, `upgradeHashVerifier` - upgradability function for providing new version of zk circiuts
 - `recover` - restart smart contract after upgrade
+
+---
+
+---
+
+---
+
+```
+cd circuit/solidity_plonk_verifier/
+cargo build --release
+./target/release/solidity_plonk_verifier --verification-key PATH_TO_KEY
+cat ./hardhat/contracts/VerificationKey.sol | sed 's%import "hardhat/console.sol";% %g' > PATH_TO_SC/VerificationKey.sol
+```
