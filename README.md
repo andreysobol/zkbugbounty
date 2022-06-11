@@ -24,7 +24,7 @@ We have 2 main smart contract functions
 
 We have few Secondary Functions:
 - `depositForBounty`
-- `upgradeStateTransitionVerifier`, `upgradeHashVerifier` - upgradability function for providing new version of zk circiuts
+- `upgradeStateTransitionVerifier`, `upgradeHackVerifier` - upgradability function for providing new version of zk circiuts
 - `recover` - restart smart contract after upgrade
 
 ## Tools and technologies
@@ -33,7 +33,8 @@ We have few Secondary Functions:
 - [belman_ce](https://github.com/matter-labs/bellman): fork of original belman with plonk
 - [franklin-crypto](https://github.com/matter-labs/franklin-crypto): Gadget library for PLONK/Plookup
 - [solidity plonk verifier](https://github.com/andreysobol/solidity_plonk_verifier) solidity plonk verifier with lookup tables
-- [rescue poseidon](https://github.com/matter-labs/rescue-poseidon): Rescue and Poseidon circuit implementation 
+- [rescue poseidon](https://github.com/matter-labs/rescue-poseidon): Rescue and Poseidon argebraic hash circuit implementation 
+- [hardhat](https://hardhat.org/): Eth contract toolkit
 
 ## How to use it
 
@@ -55,13 +56,25 @@ pass
 ```
 cd circuit/solidity_plonk_verifier/
 cargo build --release
-./target/release/solidity_plonk_verifier --verification-key PATH_TO_KEY
+./target/release/solidity_plonk_verifier --verification-key /tmp/create_account_vk_keccak.key
 cat ./hardhat/contracts/VerificationKey.sol | sed 's%import "hardhat/console.sol";% %g' > PATH_TO_SC/VerificationKey.sol
 ```
 
 ### Compile Smart Contracts
 
+```
+cd contracts
+npx hardhat compile
+```
+
 ### Deploy Smart Contracts
+
+```
+cd contracts
+npx hardhat run scripts/deploy.js
+```
+
+And you will get contract adresses
 
 ### Run user transaction
 
