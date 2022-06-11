@@ -35,12 +35,6 @@ We have few Secondary Functions:
 - [solidity plonk verifier](https://github.com/andreysobol/solidity_plonk_verifier) solidity plonk verifier with lookup tables
 - [rescue poseidon](https://github.com/matter-labs/rescue-poseidon): Rescue and Poseidon circuit implementation 
 
----
-
----
-
----
-
 ## How to use it
 
 ### Build circtuits
