@@ -18,3 +18,7 @@ cargo build --release
 ./target/release/solidity_plonk_verifier --verification-key PATH_TO_KEY
 cat ./hardhat/contracts/VerificationKey.sol | sed 's%import "hardhat/console.sol";% %g' > PATH_TO_SC/VerificationKey.sol
 ```
+
+### Hack Proof
+
+Imagine that some hacker found vulnerability. He get on of the historical state of the system `stateX` and apply to this some correct state transitions (when for example Alice send money to Bob and Bob send money to Carrel). And prove this state transition using the same circuit which called `State Transition Proof` as is done by regular user Alice. And if result of this manipulation goes to `incorrectState`: for example money supply was increased - he can easelly prove it using zk. Creteria and rules for inc `incorrectState` should be provided by developers of system and should be part of the `Hack Proof`. Also public input `Hack Proof`should be encrypted by contract owner public key. That's mean that only contract owner will understand where he have problem
