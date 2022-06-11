@@ -6,7 +6,10 @@ async function main() {
   const Hello = await ethers.getContractFactory("Hello");
   const hello = await Hello.deploy();
 
-  console.log("Hello address:", hello.address);
+  const ZkBugBounty = await ethers.getContractFactory("ZkBugBounty");
+  const z = await ZkBugBounty.deploy(deployer.address, hello.address, hello.address);
+
+  console.log("ZkBugBounty address:", z.address);
 }
 
 main()
