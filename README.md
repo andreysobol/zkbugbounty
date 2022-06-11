@@ -68,6 +68,11 @@ npx hardhat compile
 
 ### Deploy Smart Contracts
 
+```
+cd contracts
+npx hardhat run scripts/deploy.js
+```
+
 ### Run user transaction
 
 ### Run proof of hack
