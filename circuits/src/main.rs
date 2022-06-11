@@ -29,15 +29,15 @@ const ACC_DEPTH: usize = 8;
 const ACC_NUM: usize = 1 << ACC_DEPTH;
 
 pub fn apply_transacton<E: Engine>(
-    state: &ERC20State<E>,
+    state: &TokenState<E>,
     transaction: &Transaction<E>,
-) -> Result<ERC20State<E>, SynthesisError> {
+) -> Result<TokenState<E>, SynthesisError> {
     todo!()
 }
 
 pub fn create_acc<E: Engine, CS: ConstraintSystem<E>>(
     cs: &mut CS,
-    state: &ERC20State<E>,
+    state: &TokenState<E>,
     owner: &Num<E>,
     pub_key: &Num<E>,
     location: &[Boolean; ACC_DEPTH],
@@ -71,13 +71,13 @@ pub fn create_acc<E: Engine, CS: ConstraintSystem<E>>(
 }
 
 #[derive(Clone)]
-pub struct ERC20State<E: Engine>{
+pub struct TokenState<E: Engine>{
     pub owners: [Num<E>; ACC_NUM],
     pub balances: [Num<E>; ACC_NUM],
     pub pub_keys: [Num<E>; ACC_NUM],
 }
 
-impl<E: Engine> ERC20State<E> {
+impl<E: Engine> TokenState<E> {
     pub fn new<CS: ConstraintSystem<E>>(
         cs: &mut CS, 
         owner: &Num<E>, 
