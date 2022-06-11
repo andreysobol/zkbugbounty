@@ -73,6 +73,8 @@ cd contracts
 npx hardhat run scripts/deploy.js
 ```
 
+And you will get contract adresses
+
 ### Run user transaction
 
 ### Run proof of hack
