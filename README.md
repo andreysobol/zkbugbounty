@@ -49,7 +49,10 @@ cargo build
 
 ### Generate VK
 
-pass
+```
+cd circuit
+cargo run
+```
 
 ### Generate Solidity Plonk Verifier
 
