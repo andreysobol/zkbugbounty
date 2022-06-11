@@ -10,7 +10,7 @@ We propose to write system, where hacker can prove **formally** and **mathematic
 
 ### State Transition Proof
 
-All business logic of user function (for example function `transfer`in some pseudoERC20 Token ) will be implemented as ZK circuit. For example if user Alice want to send money to user Bob - Alice will generate zk proof which will change state of full system from `state0` to `state1`.
+All business logic of user function (for example function `transfer`in some pseudoERC20 Token ) will be implemented as ZK circuit. For example if user Alice want to send money to user Bob - Alice will generate zk proof which will change state of full system from `state0` to `state1`. This proof we will call `State Transition Proof`
 
 ```
 cd circuit/solidity_plonk_verifier/
