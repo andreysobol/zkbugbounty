@@ -79,3 +79,8 @@ And you will get contract adresses
 ### Run user transaction
 
 ### Run proof of hack
+
+## Meme
+
+![Black and white hackers meme](/img/blackwhitememe.png)
+
