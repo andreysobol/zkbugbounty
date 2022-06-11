@@ -2,7 +2,7 @@
 
 ## Motivation
 
-In the last few years more than a million dollars were stolen from smart contracts (you can see a list of the biggest hacks in rekt news https://rekt.news/leaderboard/). Classic bug bounty (like immunefi.com) have a solution to this problem - hacker will have economic incentive to report vulnerability (for reward). But it's not very effective because hacker has risk that project or escrow will say "it's a not real vulnerability". That means that hacker will most probably use such vulnerability next time, instead of reporting it.
+In the last few years more than a million dollars were stolen from smart contracts (you can see a list of the biggest hacks in [Rekt News](https://rekt.news/leaderboard/)). Classic bug bounty (like [Immunefi](https://immunefi.com)) have a solution to this problem - hacker will have economic incentive to report vulnerability (for reward). But it's not very effective because hacker has risk that project or escrow will say "it's a not real vulnerability". That means that hacker will most probably use such vulnerability next time, instead of reporting it.
 
 We propose to write system, where hacker can prove **formally** and **mathematically** that he found a bug.
 
