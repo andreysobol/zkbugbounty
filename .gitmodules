@@ -1,0 +1,3 @@
+[submodule "circuits/solidity_plonk_verifier"]
+	path = circuits/solidity_plonk_verifier
+	url = git@github.com:andreysobol/solidity_plonk_verifier.git
