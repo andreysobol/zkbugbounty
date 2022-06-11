@@ -325,6 +325,6 @@ fn main() {
         Bn256,
         _,
         RollingKeccakTranscript<<Bn256 as ScalarEngine>::Fr>,
-    >(&circuit, None, "width4_with_lookup_and_rescue")
+    >(&circuit, None, "create_account")
     .unwrap()
 }
