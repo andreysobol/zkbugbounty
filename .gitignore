@@ -1,2 +1,4 @@
 circuits/target/*
 node_modules
+artifacts
+cache
