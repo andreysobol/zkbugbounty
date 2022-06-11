@@ -41,9 +41,34 @@ We have few Secondary Functions:
 
 ---
 
+## How to use it
+
+### Build circtuits
+
+install rust and cargo
+
+```
+cd circuit
+cargo build
+```
+
+### Generate VK
+
+pass
+
+### Generate Solidity Plonk Verifier
+
 ```
 cd circuit/solidity_plonk_verifier/
 cargo build --release
 ./target/release/solidity_plonk_verifier --verification-key PATH_TO_KEY
 cat ./hardhat/contracts/VerificationKey.sol | sed 's%import "hardhat/console.sol";% %g' > PATH_TO_SC/VerificationKey.sol
 ```
+
+### Compile Smart Contracts
+
+### Deploy Smart Contracts
+
+### Run user transaction
+
+### Run proof of hack
