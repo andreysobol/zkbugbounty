@@ -72,6 +72,8 @@ npx hardhat compile
 
 ### Deploy Smart Contracts
 
+install nodejs and hardhat
+
 ```
 cd contracts
 npx hardhat run scripts/deploy.js
