@@ -147,6 +147,53 @@ fn inner_circuit_rescue_part<E: Engine, CS: ConstraintSystem<E>>(
     Ok(())
 }
 
+pub fn generate_setup_vk_and_proof_for_std_main_gate<E: Engine, C: Circuit<E>, T: Transcript<E::Fr>>(
+    circuit: &C,
+    transcript_params: Option<T::InitializationParameters>,
+    prefix: &str,
+) -> Result<(), SynthesisError> {
+    let worker = Worker::new();
+
+    let mut cs = TrivialAssembly::<
+        E,
+        PlonkCsWidth4WithNextStepAndCustomGatesParams,
+        Width4MainGateWithDNext,
+    >::new();
+
+    circuit.synthesize(&mut cs)?;
+    cs.finalize();
+
+    assert!(cs.is_satisfied());
+
+    let setup = cs.create_setup::<C>(&worker)?;
+
+    println!("domain size {}", setup.n);
+
+    let domain_size = setup.n.clone();
+
+    let crs = Crs::<E, CrsForMonomialForm>::crs_42(domain_size.next_power_of_two(), &worker);
+
+    let vk = VerificationKey::from_setup(&setup, &worker, &crs)?;
+    dbg!(vk.total_lookup_entries_length);
+
+    let vk_file_name = format!("/tmp/{}_{}", prefix, "vk_keccak.key");
+    let proof_file_name = format!("/tmp/{}_{}", prefix, "proof_keccak.proof");
+
+    let mut vk_writer = std::fs::File::create(vk_file_name).expect("create vk file");
+    vk.write(&mut vk_writer).expect("write vk into file");
+    let proof = cs.create_proof::<_, T>(&worker, &setup, &crs, transcript_params.clone())?;
+
+    let mut proof_writer = std::fs::File::create(proof_file_name).expect("create proof file");
+    proof
+        .write(&mut proof_writer)
+        .expect("write proof into file");
+    let verified = verifier::verify::<E, _, T>(&vk, &proof, transcript_params)?;
+
+    assert!(verified, "proof verification failed");
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod circuit_tests {
     use std::path::PathBuf;
@@ -178,52 +225,6 @@ mod circuit_tests {
 
     use super::*;
 
-    fn generate_setup_vk_and_proof_for_std_main_gate<E: Engine, C: Circuit<E>, T: Transcript<E::Fr>>(
-        circuit: &C,
-        transcript_params: Option<T::InitializationParameters>,
-        prefix: &str,
-    ) -> Result<(), SynthesisError> {
-        let worker = Worker::new();
-
-        let mut cs = TrivialAssembly::<
-            E,
-            PlonkCsWidth4WithNextStepAndCustomGatesParams,
-            Width4MainGateWithDNext,
-        >::new();
-
-        circuit.synthesize(&mut cs)?;
-        cs.finalize();
-
-        assert!(cs.is_satisfied());
-
-        let setup = cs.create_setup::<C>(&worker)?;
-
-        println!("domain size {}", setup.n);
-
-        let domain_size = setup.n.clone();
-
-        let crs = Crs::<E, CrsForMonomialForm>::crs_42(domain_size.next_power_of_two(), &worker);
-
-        let vk = VerificationKey::from_setup(&setup, &worker, &crs)?;
-        dbg!(vk.total_lookup_entries_length);
-
-        let vk_file_name = format!("/tmp/{}_{}", prefix, "vk_keccak.key");
-        let proof_file_name = format!("/tmp/{}_{}", prefix, "proof_keccak.proof");
-
-        let mut vk_writer = std::fs::File::create(vk_file_name).expect("create vk file");
-        vk.write(&mut vk_writer).expect("write vk into file");
-        let proof = cs.create_proof::<_, T>(&worker, &setup, &crs, transcript_params.clone())?;
-
-        let mut proof_writer = std::fs::File::create(proof_file_name).expect("create proof file");
-        proof
-            .write(&mut proof_writer)
-            .expect("write proof into file");
-        let verified = verifier::verify::<E, _, T>(&vk, &proof, transcript_params)?;
-
-        assert!(verified, "proof verification failed");
-
-        Ok(())
-    }
     fn generate_setup_vk_and_proof_for_selector_optimized_main_gate<
         E: Engine,
         C: Circuit<E>,

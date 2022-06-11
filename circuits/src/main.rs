@@ -1,17 +1,26 @@
 pub use franklin_crypto::{
     bellman::{
+        kate_commitment::{Crs, CrsForMonomialForm},
         plonk::better_better_cs::{
             cs::{
-                Circuit, ConstraintSystem, Gate, GateInternal, LookupTableApplication,
-                PolyIdentifier, Width4MainGateWithDNext,
+                Assembly, Circuit, ConstraintSystem, Gate, GateInternal, LookupTableApplication,
+                PlonkCsWidth4WithNextStepAndCustomGatesParams, PolyIdentifier, Setup, Width4MainGateWithDNext,
+                TrivialAssembly,
+                ArithmeticTerm,
+                MainGateTerm,
             },
+            proof::Proof,
+            setup::VerificationKey,
+            verifier,
             gates::selector_optimized_with_d_next::SelectorOptimizedWidth4MainGateWithDNext,
         },
-        Engine, Field, PrimeField, SynthesisError,
+        Engine, Field, PrimeField, ScalarEngine, SynthesisError,
+        worker::Worker,
+        plonk::commitments::transcript::{keccak_transcript::RollingKeccakTranscript, Transcript},
     },
     plonk::circuit::{
         allocated_num::{AllocatedNum, Num},
-        boolean::Boolean,
+        boolean::{AllocatedBit, Boolean},
         custom_rescue_gate::Rescue5CustomGate,
     },
 };
@@ -19,7 +28,7 @@ use itertools::Itertools;
 
 pub use rescue_poseidon::{circuit_generic_hash, CustomGate, HashParams, RescueParams};
 
-pub mod contract_functions;
+pub mod contract_circuits;
 
 pub mod generate;
 pub mod serialize;
@@ -28,7 +37,7 @@ mod test_circuits;
 const ACC_DEPTH: usize = 8;
 const ACC_NUM: usize = 1 << ACC_DEPTH;
 
-pub fn apply_transacton<E: Engine>(
+pub fn apply_transaction<E: Engine>(
     state: &TokenState<E>,
     transaction: &Transaction<E>,
 ) -> Result<TokenState<E>, SynthesisError> {
@@ -253,7 +262,20 @@ pub fn hash_two_numbers_out_of_cs<E: Engine, CS: ConstraintSystem<E>> (
     first: &Num<E>,
     second: &Num<E>,
 ) -> Result<Num<E>, SynthesisError> {
-    todo!();
+    let mut fake_cs = TrivialAssembly::<
+        E,
+        PlonkCsWidth4WithNextStepAndCustomGatesParams,
+        SelectorOptimizedWidth4MainGateWithDNext,
+    >::new();
+
+    let fake_first = Num::alloc(&mut fake_cs, first.get_value())?;
+    let fake_second = Num::alloc(&mut fake_cs, second.get_value())?;
+
+    let fake_res = hash_two_numbers(&mut fake_cs, &fake_first, &fake_second)?;
+
+    let res = Num::alloc(cs, fake_res.get_value())?;
+
+    Ok(res)
 }
 
 fn get_num_from_boolean(bits: &[Boolean]) -> usize {
@@ -272,5 +294,37 @@ fn get_num_from_boolean(bits: &[Boolean]) -> usize {
 }
 
 fn main() {
-    println!("WAGMI!");
+    use franklin_crypto::bellman::bn256::{Bn256, Fr};
+    use contract_circuits::*;
+    use test_circuits::*;
+
+    let mut fake_cs = TrivialAssembly::<
+        Bn256,
+        PlonkCsWidth4WithNextStepAndCustomGatesParams,
+        SelectorOptimizedWidth4MainGateWithDNext,
+    >::new();
+
+    let mut state = [Num::Constant(Fr::zero()); ACC_NUM];
+    let old_sub_commit = hash_commit(&mut fake_cs, &state).unwrap();
+    let old_commit = hash_two_numbers(&mut fake_cs, &old_sub_commit, &old_sub_commit).unwrap();
+
+    state[0] = Num::Constant(Fr::one());
+    let new_sub_commit = hash_commit(&mut fake_cs, &state).unwrap();
+    let new_commit = hash_two_numbers(&mut fake_cs, &new_sub_commit, &old_sub_commit).unwrap();
+
+    let circuit = CreateAccCircuit::<Bn256> {
+        state_pub_keys: [Some(Fr::zero()); ACC_NUM],
+        state_amounts: [Some(Fr::zero()); ACC_NUM],
+        new_location: [Some(false); ACC_DEPTH],
+        new_pub_key: Some(Fr::one()),
+        old_state_commit: old_commit.get_value(),
+        new_state_commit: new_commit.get_value(),
+    };
+
+    generate_setup_vk_and_proof_for_std_main_gate::<
+        Bn256,
+        _,
+        RollingKeccakTranscript<<Bn256 as ScalarEngine>::Fr>,
+    >(&circuit, None, "width4_with_lookup_and_rescue")
+    .unwrap()
 }
