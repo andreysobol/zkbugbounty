@@ -67,12 +67,13 @@ impl<E: Engine> Circuit<E> for CreateAccCircuit<E> {
         let (_, amounts_commit) = generate_witness_path_and_commit(cs, &new_location, &state_amounts)?;
 
         let old_pub_keys_commit = compute_commit(cs, &new_location, &old_pub_keys_path)?;
+
         let old_commit = hash_two_numbers(cs, &old_pub_keys_commit, &amounts_commit)?;
         old_commit.enforce_equal(cs, &old_state_commit)?;
 
         old_pub_keys_path[0] = new_pub_key;
         let new_pub_keys_commit = compute_commit(cs, &new_location, &old_pub_keys_path)?;
-        let new_commit = hash_two_numbers(cs, &old_pub_keys_commit, &amounts_commit)?;
+        let new_commit = hash_two_numbers(cs, &new_pub_keys_commit, &amounts_commit)?;
         new_commit.enforce_equal(cs, &new_state_commit)?;
 
         Ok(())

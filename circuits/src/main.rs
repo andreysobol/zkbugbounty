@@ -34,7 +34,7 @@ pub mod generate;
 pub mod serialize;
 mod test_circuits;
 
-const ACC_DEPTH: usize = 8;
+const ACC_DEPTH: usize = 3;
 const ACC_NUM: usize = 1 << ACC_DEPTH;
 
 pub fn apply_transaction<E: Engine>(
@@ -217,7 +217,7 @@ pub fn compute_commit<E: Engine, CS: ConstraintSystem<E>>(
     let mut first = path[0];
     let mut second;
 
-    for (flag, commit) in location.iter().zip(path.iter()) {
+    for (flag, commit) in location.iter().zip(path.iter().skip(1)) {
         second = *commit;
         (first, second) = Num::conditionally_reverse(cs, &first, &second, flag)?;
         first = hash_two_numbers(cs, &first, &second)?;
