@@ -56,7 +56,7 @@ pass
 ```
 cd circuit/solidity_plonk_verifier/
 cargo build --release
-./target/release/solidity_plonk_verifier --verification-key PATH_TO_KEY
+./target/release/solidity_plonk_verifier --verification-key /tmp/create_account_vk_keccak.key
 cat ./hardhat/contracts/VerificationKey.sol | sed 's%import "hardhat/console.sol";% %g' > PATH_TO_SC/VerificationKey.sol
 ```
 

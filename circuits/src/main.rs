@@ -34,7 +34,7 @@ pub mod generate;
 pub mod serialize;
 mod test_circuits;
 
-const ACC_DEPTH: usize = 3;
+const ACC_DEPTH: usize = 8;
 const ACC_NUM: usize = 1 << ACC_DEPTH;
 
 pub fn apply_transaction<E: Engine>(
@@ -134,26 +134,87 @@ impl<E: Engine> TokenState<E> {
 }
 
 pub struct Transaction<E: Engine> {
-    pub sender: Num<E>,
-    pub signature: Num<E>, // useless for one tx bug_proof
+    pub from: Num<E>,
     pub to: Num<E>,
     pub amount: Num<E>,
+    pub signature: Num<E>, // useless for one tx bug_proof
 }
 
 impl<E: Engine> Transaction<E> {
     // useless for one tx bug_proof
     pub fn tx_hash<CS: ConstraintSystem<E>>(&self, cs: &mut CS) -> Result<Num<E>, SynthesisError> {
-        hash_three_numbers(cs, &self.sender, &self.to, &self.amount)
+        todo!();
     }
 
     // useless for one tx bug_proof
-    pub fn verify_sig<CS: ConstraintSystem<E>>(&self, ) ->Result<Boolean, SynthesisError> {
-        todo!()
+    pub fn verify_sig<CS: ConstraintSystem<E>>(&self, cs: &mut CS) ->Result<(), SynthesisError> {
+        todo!();
     }
 
     pub fn encode_tx<CS: ConstraintSystem<E>>(&self, pub_key: Num<E>) ->Result<EncodedTransaction<E>, SynthesisError> {
         todo!()
     }
+}
+
+pub fn verify_sig<E: Engine, CS: ConstraintSystem<E>>(
+    cs: &mut CS,
+    pub_key: &Num<E>,
+    signature: &Num<E>,
+) ->Result<(), SynthesisError> {
+    let sig_hash = hash_number(cs, signature)?;
+    sig_hash.enforce_equal(cs, pub_key)?;
+
+    Ok(())
+}
+
+fn send_tokens<E: Engine, CS: ConstraintSystem<E>>(
+    cs: &mut CS,
+    from_amount: &Num<E>,
+    to_amount: &Num<E>,
+    amount: &Num<E>,
+    range_table_name: &str,
+) ->Result<(Num<E>, Num<E>), SynthesisError> {
+    let from_new_amount = from_amount.sub(cs, amount)?;
+    let to_new_amount = to_amount.add(cs, amount)?;
+
+    // range checks for 'amount' and 'from_new_amount'
+    {
+        let dummy = CS::get_dummy_variable();
+
+        let table = cs.get_table(range_table_name)?;
+        let num_keys_and_values = table.width();
+
+        let amount_var = amount.get_variable().get_variable();
+        let from_new_amount_var = from_new_amount.get_variable().get_variable();
+        let var_zero = cs.get_explicit_zero()?;
+
+        let vars_with_amount = [amount_var, var_zero.clone(), var_zero.clone(), dummy];
+        let vars_with_from_new_amount = [from_new_amount_var, var_zero.clone(), var_zero.clone(), dummy];
+
+        cs.begin_gates_batch_for_step()?;
+
+        cs.allocate_variables_without_gate(
+            &vars_with_amount,
+            &[]
+        )?;
+
+        cs.apply_single_lookup_gate(&vars_with_amount[..num_keys_and_values], table)?;
+        cs.end_gates_batch_for_step()?;
+
+
+        let table = cs.get_table(range_table_name)?;
+        cs.begin_gates_batch_for_step()?;
+
+        cs.allocate_variables_without_gate(
+            &vars_with_from_new_amount,
+            &[]
+        )?;
+
+        cs.apply_single_lookup_gate(&vars_with_from_new_amount[..num_keys_and_values], table)?;
+        cs.end_gates_batch_for_step()?;
+    }
+
+    Ok((from_new_amount, to_new_amount))
 }
 
 pub struct EncodedTransaction<E: Engine> {
@@ -224,6 +285,20 @@ pub fn compute_commit<E: Engine, CS: ConstraintSystem<E>>(
     }
 
     Ok(first)
+}
+
+pub fn hash_number<E: Engine, CS: ConstraintSystem<E>> (
+    cs: &mut CS,
+    number: &Num<E>
+) -> Result<Num<E>, SynthesisError> {
+    let mut params = RescueParams::default();
+
+    // Let's double check this in Circuit<E> implementation
+    params.use_custom_gate(CustomGate::QuinticWidth4);
+
+    let mut res = circuit_generic_hash::<_, _, _, 1, 3, 1>(cs, &[*number], &params, None)?.to_vec();
+
+    Ok(res.pop().unwrap().into_num(cs)?)
 }
 
 pub fn hash_two_numbers<E: Engine, CS: ConstraintSystem<E>> (
