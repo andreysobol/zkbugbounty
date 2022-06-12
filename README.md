@@ -33,8 +33,10 @@ We have few Secondary Functions:
 - [x] All [circuits](/circuits/src/main.rs)
 - [x] Automaticaly generated vk for circuits (using [solidity plonk verifier](https://github.com/andreysobol/solidity_plonk_verifier))
 - [ ] Change signature from hash based to schnorr 
-- [ ] Add encrtiption for public input using contract owner public key 
+- [ ] Add encryption for public input using contract owner public key
+- [ ] Multiple transactions in bug proof
 - [ ] Tooling for sending tx
+- [ ] Proof agregation
 - [ ] Some UI
 
 ## Tools and technologies
