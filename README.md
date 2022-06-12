@@ -27,6 +27,16 @@ We have few Secondary Functions:
 - `upgradeStateTransitionVerifier`, `upgradeHackVerifier` - upgradability function for providing new version of zk circiuts
 - `recover` - restart smart contract after upgrade
 
+## List of features
+
+- [x] Main [contract](/contracts/contracts/ZkBugBounty.sol)
+- [x] All [circuits](/circuits/src/main.rs)
+- [x] Automaticaly generated vk for circuits (using [solidity plonk verifier](https://github.com/andreysobol/solidity_plonk_verifier))
+- [ ] Change signature from hash based to schnorr 
+- [ ] Add encrtiption for public input using contract owner public key 
+- [ ] Tooling for sending tx
+- [ ] Some UI
+
 ## Tools and technologies
 
 - [plonk](https://eprint.iacr.org/2019/953.pdf): prove system with universal trusted setup
@@ -88,11 +98,6 @@ And you will get contract adresses
 ### Run proof of hack
 
 `TODO!:` make proper tooling for this
-
-## List of features
-
-- [x] Main [contract](/contracts/contracts/ZkBugBounty.sol)
-- [x] All [circuits](/circuits/src/main.rs)
 
 ## Meme
 
