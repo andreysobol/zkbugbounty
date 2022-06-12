@@ -89,6 +89,11 @@ And you will get contract adresses
 
 `TODO!:` make proper tooling for this
 
+## List of features
+
+- [x] Main (contract)[contracts/contracts/ZkBugBounty.sol]
+- [x] All (circuits)[circuits/src/main.rs]
+
 ## Meme
 
 ![Black and white hackers meme](/img/blackwhitememe.png)
