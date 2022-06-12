@@ -91,8 +91,8 @@ And you will get contract adresses
 
 ## List of features
 
-- [x] Main (contract)[contracts/contracts/ZkBugBounty.sol]
-- [x] All (circuits)[circuits/src/main.rs]
+- [x] Main (contract)[/contracts/contracts/ZkBugBounty.sol]
+- [x] All (circuits)[/circuits/src/main.rs]
 
 ## Meme
 
