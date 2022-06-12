@@ -2,9 +2,10 @@ use super::*;
 use franklin_crypto::plonk::circuit::Assignment;
 
 pub struct HackProofCircuit<E: Engine> {
-    pub begining_state_commit: Option<E::Fr>,
+    pub state_commit: Option<E::Fr>,
     pub state_pub_keys: [Option<E::Fr>; ACC_NUM],
     pub state_amounts: [Option<E::Fr>; ACC_NUM],
+    pub total_suply: Option<E::Fr>,
     // tx parts
     pub tx_type: Option<E::Fr>,
     pub first_location: [Option<bool>; ACC_DEPTH],
@@ -12,11 +13,137 @@ pub struct HackProofCircuit<E: Engine> {
     pub first_parameter: Option<E::Fr>,
     pub second_parameter: Option<E::Fr>,
     // encoded tx parts
+    pub encoding_pub_key: Option<E::Fr>,
     pub encoded_tx_type: Option<E::Fr>,
-    pub encoded_1st_location: [Option<bool>; ACC_DEPTH],
-    pub encoded_2nd_location: [Option<bool>; ACC_DEPTH],
+    pub encoded_1st_location: Option<E::Fr>,
+    pub encoded_2nd_location: Option<E::Fr>,
     pub encoded_1st_parameter: Option<E::Fr>,
     pub encoded_2nd_parameter: Option<E::Fr>,
+}
+
+impl<E: Engine> Circuit<E> for HackProofCircuit<E> {
+    type MainGate = Width4MainGateWithDNext;
+
+    fn synthesize<CS: ConstraintSystem<E>>(&self, cs: &mut CS) -> Result<(), SynthesisError> {
+        // Allocating public and witness variables
+        let state_commit = num_alloc_input(cs, &self.state_commit)?;
+        let state_pub_keys = alloc_state(cs, &self.state_pub_keys)?;
+        let state_amounts = alloc_state(cs, &self.state_amounts)?;
+        let total_suply = num_alloc_input(cs, &self.total_suply)?;
+
+        let tx_type = Num::alloc(cs, self.tx_type)?;
+        let first_parameter = Num::alloc(cs, self.first_parameter)?;
+        let second_parameter = Num::alloc(cs, self.second_parameter)?;
+
+        let encoding_pub_key = num_alloc_input(cs, &self.encoding_pub_key)?;
+        let encoded_tx_type = num_alloc_input(cs, &self.encoded_tx_type)?;
+        let encoded_1st_parameter = num_alloc_input(cs, &self.encoded_1st_parameter)?;
+        let encoded_2nd_parameter = num_alloc_input(cs, &self.encoded_2nd_parameter)?;
+
+        let first_location = alloc_location(cs, &self.first_location)?;
+        let second_location = alloc_location(cs, &self.second_location)?;
+        let encoded_1st_location = num_alloc_input(cs, &self.encoded_1st_location)?;
+        let encoded_2nd_location = num_alloc_input(cs, &self.encoded_2nd_location)?;
+
+        // Generating lookup table for range checks
+        let range_table_name = create_range_table(cs, AMOUNT_LOG_LIMIT)?;
+
+        // Check encoding correctness
+        enforce_encoding_correctness(
+            cs,
+            &encoding_pub_key,
+            &tx_type,
+            &first_parameter,
+            &second_parameter,
+            &first_location,
+            &second_location,
+            &encoded_tx_type,
+            &encoded_1st_parameter,
+            &encoded_2nd_parameter,
+            &encoded_1st_location,
+            &encoded_2nd_location,
+        )?;
+
+        // Compute all possible tx
+        let acc_create_commit = create_acc_circuit_inner(
+            cs,
+            &state_pub_keys,
+            &state_amounts,
+            &first_location,
+            &state_commit,
+            &first_parameter,
+        )?;
+
+        let transaction_commit = transaction_circuit_inner(
+            cs,
+            &state_pub_keys,
+            &state_amounts,
+            &first_location,
+            &second_location,
+            &state_commit,
+            &first_parameter,
+            &second_parameter,
+            &range_table_name,
+        )?;
+
+        // Get the right commit
+        let first_type = tx_type.is_zero(cs)?;
+        let new_commit = Num::conditionally_select(
+            cs, 
+            &first_type, 
+            &acc_create_commit, 
+            &transaction_commit
+        )?;
+
+        // Get the current state
+        let (new_state_pub_keys, new_state_amounts) = recover_state(
+            cs,
+            &new_commit,
+            &state_pub_keys,
+            &state_amounts,
+            &tx_type,
+            &first_parameter,
+            &second_parameter,
+            &first_location,
+            &second_location,
+        )?;
+
+        // Proof bug existance
+        proof_bug(
+            cs,
+            &new_state_pub_keys,
+            &new_state_amounts,
+            &total_suply
+        )?;
+
+        Ok(())
+    }
+
+    fn declare_used_gates() -> Result<Vec<Box<dyn GateInternal<E>>>, SynthesisError> {
+        Ok(vec![
+            Self::MainGate::default().into_internal(),
+            Rescue5CustomGate::default().into_internal(),
+        ])
+    }
+}
+
+pub fn proof_bug<E: Engine, CS: ConstraintSystem<E>>(
+    cs: &mut CS,
+    _state_pub_keys: &[Num<E>; ACC_NUM],
+    state_amounts: &[Num<E>; ACC_NUM],
+    total_suply: &Num<E>
+) -> Result<(), SynthesisError> {
+    // For now, we only proof that the sum of all amounts is not equal to total_suply
+
+    let mut sub = *total_suply;
+
+    for el in state_amounts.iter() {
+        sub = sub.sub(cs, el)?;
+    }
+
+    sub.assert_not_zero(cs)?;
+
+    Ok(())
 }
 
 pub struct ApplyTxCircuit<E: Engine> {
@@ -35,12 +162,9 @@ impl<E: Engine> Circuit<E> for ApplyTxCircuit<E> {
 
     fn synthesize<CS: ConstraintSystem<E>>(&self, cs: &mut CS) -> Result<(), SynthesisError> {
         // Allocating public and witness variables
-        let old_state_commit = AllocatedNum::alloc_input(cs, || Ok(*self.old_state_commit.get()?))?;
-        let old_state_commit = Num::Variable(old_state_commit);
-        let new_state_commit = AllocatedNum::alloc_input(cs, || Ok(*self.new_state_commit.get()?))?;
-        let new_state_commit = Num::Variable(new_state_commit);
-        let amount = AllocatedNum::alloc_input(cs, || Ok(*self.amount.get()?))?;
-        let amount = Num::Variable(amount);
+        let old_state_commit = num_alloc_input(cs, &self.old_state_commit)?;
+        let new_state_commit = num_alloc_input(cs, &self.new_state_commit)?;
+        let amount = num_alloc_input(cs, &self.amount)?;
         let signature = Num::alloc(cs, self.signature)?;
 
         let from_location = alloc_input_location(cs, &self.from_location)?;
@@ -50,15 +174,7 @@ impl<E: Engine> Circuit<E> for ApplyTxCircuit<E> {
         let state_amounts = alloc_state(cs, &self.state_amounts)?;
 
         // Generating lookup table for range checks
-        let columns = vec![
-            PolyIdentifier::VariablesPolynomial(0),
-            PolyIdentifier::VariablesPolynomial(1),
-            PolyIdentifier::VariablesPolynomial(2),
-        ];
-
-        let range_table = LookupTableApplication::<E>::new_range_table_of_width_3(8, columns.clone())?;
-        let range_table_name = range_table.functional_name();
-        cs.add_table(range_table)?;
+        let range_table_name = create_range_table(cs, AMOUNT_LOG_LIMIT)?;
 
         // Generating new commit with inner circuit
         let new_commit = transaction_circuit_inner(
@@ -152,12 +268,9 @@ impl<E: Engine> Circuit<E> for CreateAccCircuit<E> {
 
     fn synthesize<CS: ConstraintSystem<E>>(&self, cs: &mut CS) -> Result<(), SynthesisError> {
         // Allocating public and witness variables
-        let old_state_commit = AllocatedNum::alloc_input(cs, || Ok(*self.old_state_commit.get()?))?;
-        let old_state_commit = Num::Variable(old_state_commit);
-        let new_state_commit = AllocatedNum::alloc_input(cs, || Ok(*self.new_state_commit.get()?))?;
-        let new_state_commit = Num::Variable(new_state_commit);
-        let new_pub_key = AllocatedNum::alloc_input(cs, || Ok(*self.new_pub_key.get()?))?;
-        let new_pub_key = Num::Variable(new_pub_key);
+        let old_state_commit = num_alloc_input(cs, &self.old_state_commit)?;
+        let new_state_commit = num_alloc_input(cs, &self.new_state_commit)?;
+        let new_pub_key = num_alloc_input(cs, &self.new_pub_key)?;
 
         let new_location = alloc_input_location(cs, &self.new_location)?;
         let state_pub_keys = alloc_state(cs, &self.state_pub_keys)?;
@@ -221,6 +334,19 @@ pub fn alloc_input_location<E: Engine, CS: ConstraintSystem<E>> (
     Ok(location.try_into().unwrap())
 }
 
+pub fn alloc_location<E: Engine, CS: ConstraintSystem<E>> (
+    cs: &mut CS,
+    bit_location: &[Option<bool>; ACC_DEPTH]
+) -> Result<[Boolean; ACC_DEPTH], SynthesisError> {
+    let mut location = vec![];
+    for bit in bit_location.iter() {
+        location.push(
+            Boolean::alloc(cs, *bit)?
+        );
+    }
+    Ok(location.try_into().unwrap())
+}
+
 pub fn alloc_state<E: Engine, CS: ConstraintSystem<E>> (
     cs: &mut CS,
     wit_state: &[Option<E::Fr>; ACC_NUM]
@@ -263,4 +389,29 @@ pub fn alloc_input_boolean<E, CS>(
     cs.allocate_main_gate(gate_term)?;
     
     Ok(Boolean::Is(AllocatedBit::from_allocated_num_unchecked(num)))
+}
+
+pub fn num_alloc_input<E: Engine, CS: ConstraintSystem<E>> (
+    cs: &mut CS,
+    input: &Option<E::Fr>,
+) -> Result<Num<E>, SynthesisError> {
+    let num = AllocatedNum::alloc_input(cs, || Ok(*input.get()?))?;
+    Ok(Num::Variable(num))
+}
+
+pub fn create_range_table<E: Engine, CS: ConstraintSystem<E>>(
+    cs: &mut CS,
+    log_size: usize
+) -> Result<String, SynthesisError> {
+    let columns = vec![
+        PolyIdentifier::VariablesPolynomial(0),
+        PolyIdentifier::VariablesPolynomial(1),
+        PolyIdentifier::VariablesPolynomial(2),
+    ];
+
+    let range_table = LookupTableApplication::<E>::new_range_table_of_width_3(log_size, columns.clone())?;
+    let range_table_name = range_table.functional_name();
+    cs.add_table(range_table)?;
+
+    Ok(range_table_name.to_string())
 }

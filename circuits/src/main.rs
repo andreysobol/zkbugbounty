@@ -36,125 +36,7 @@ mod test_circuits;
 
 const ACC_DEPTH: usize = 8;
 const ACC_NUM: usize = 1 << ACC_DEPTH;
-
-pub fn apply_transaction<E: Engine>(
-    state: &TokenState<E>,
-    transaction: &Transaction<E>,
-) -> Result<TokenState<E>, SynthesisError> {
-    todo!()
-}
-
-pub fn create_acc<E: Engine, CS: ConstraintSystem<E>>(
-    cs: &mut CS,
-    state: &TokenState<E>,
-    owner: &Num<E>,
-    pub_key: &Num<E>,
-    location: &[Boolean; ACC_DEPTH],
-    old_commit: &Num<E>,
-    old_owners_commit: &Num<E>,
-    balances_commit: &Num<E>,
-    old_pub_keys_commit: &Num<E>,
-) -> Result<Num<E>, SynthesisError> {
-    let computed_commit = hash_three_numbers(cs, &old_owners_commit, balances_commit, &old_pub_keys_commit)?;
-    old_commit.enforce_equal(cs, &computed_commit)?;
-    
-    let mut state = state.clone();
-
-    let (mut owners_path, _) = generate_witness_path_and_commit(cs, location, &state.owners)?;
-    let owners_commit = compute_commit(cs, location, &owners_path)?;
-    owners_commit.enforce_equal(cs, &old_owners_commit)?;
-    owners_path[0].enforce_equal(cs, &Num::zero())?;
-
-    owners_path[0] = *owner;
-    let owners_commit = compute_commit(cs, location, &owners_path)?;
-
-    let (mut pub_keys_path, _) = generate_witness_path_and_commit(cs, location, &state.pub_keys)?;
-    let pub_keys_commit = compute_commit(cs, location, &pub_keys_path)?;
-    pub_keys_commit.enforce_equal(cs, &old_pub_keys_commit)?;
-    pub_keys_path[0].enforce_equal(cs, &Num::zero())?;
-
-    pub_keys_path[0] = *owner;
-    let pub_keys_commit = compute_commit(cs, location, &pub_keys_path)?;
-
-    Ok(hash_three_numbers(cs, &owners_commit, balances_commit, &pub_keys_commit)?)
-}
-
-#[derive(Clone)]
-pub struct TokenState<E: Engine>{
-    pub owners: [Num<E>; ACC_NUM],
-    pub balances: [Num<E>; ACC_NUM],
-    pub pub_keys: [Num<E>; ACC_NUM],
-}
-
-impl<E: Engine> TokenState<E> {
-    pub fn new<CS: ConstraintSystem<E>>(
-        cs: &mut CS, 
-        owner: &Num<E>, 
-        amount: &Num<E>, 
-        pub_key: &Num<E>
-    ) -> Result<Self, SynthesisError> {
-        let mut owners = vec![*owner];
-        owners.resize(ACC_NUM, Num::zero());
-        let mut balances = vec![*amount];
-        balances.resize(ACC_NUM, Num::zero());
-        let mut pub_keys = vec![*pub_key];
-        pub_keys.resize(ACC_NUM, Num::zero());
-
-        Ok(Self{
-            balances: balances.try_into().unwrap(),
-            owners: owners.try_into().unwrap(),
-            pub_keys: pub_keys.try_into().unwrap(),
-        })
-    }
-
-    pub fn hash_commit<CS: ConstraintSystem<E>>(&self, cs: &mut CS) -> Result<Num<E>, SynthesisError> {
-        let first = hash_commit(cs, &self.owners)?;
-        let second = hash_commit(cs, &self.balances)?;
-        let third = hash_commit(cs, &self.pub_keys)?; // useless for one tx bug_proof
-        
-        Ok(hash_three_numbers(cs, &first, &second, &third)?)
-    }
-
-    pub fn conditionally_select<CS: ConstraintSystem<E>>(
-        cs: &mut CS, 
-        flag: Boolean, 
-        this: &Self, 
-        other: &Self
-    ) -> Result<Self, SynthesisError> {
-        let balances = Num::conditionally_select_multiple(cs, &flag, &this.balances, &other.balances)?;
-        let owners = Num::conditionally_select_multiple(cs, &flag, &this.owners, &other.owners)?;
-        let pub_keys = Num::conditionally_select_multiple(cs, &flag, &this.pub_keys, &other.pub_keys)?; // useless for one tx bug_proof
-
-        Ok(Self{
-            balances,
-            owners,
-            pub_keys, // useless for one tx bug_proof
-        })
-    }
-}
-
-pub struct Transaction<E: Engine> {
-    pub from: Num<E>,
-    pub to: Num<E>,
-    pub amount: Num<E>,
-    pub signature: Num<E>, // useless for one tx bug_proof
-}
-
-impl<E: Engine> Transaction<E> {
-    // useless for one tx bug_proof
-    pub fn tx_hash<CS: ConstraintSystem<E>>(&self, cs: &mut CS) -> Result<Num<E>, SynthesisError> {
-        todo!();
-    }
-
-    // useless for one tx bug_proof
-    pub fn verify_sig<CS: ConstraintSystem<E>>(&self, cs: &mut CS) ->Result<(), SynthesisError> {
-        todo!();
-    }
-
-    pub fn encode_tx<CS: ConstraintSystem<E>>(&self, pub_key: Num<E>) ->Result<EncodedTransaction<E>, SynthesisError> {
-        todo!()
-    }
-}
+const AMOUNT_LOG_LIMIT: usize = 8;
 
 pub fn verify_sig<E: Engine, CS: ConstraintSystem<E>>(
     cs: &mut CS,
@@ -165,6 +47,23 @@ pub fn verify_sig<E: Engine, CS: ConstraintSystem<E>>(
     sig_hash.enforce_equal(cs, pub_key)?;
 
     Ok(())
+}
+
+pub fn enforce_encoding_correctness<E: Engine, CS: ConstraintSystem<E>>(
+    cs: &mut CS,
+    encoding_pub_key: &Num<E>,
+    tx_type:& Num<E>,
+    first_parameter: &Num<E>,
+    second_parameter: &Num<E>,
+    first_location: &[Boolean; ACC_DEPTH],
+    second_location: &[Boolean; ACC_DEPTH],
+    encoded_tx_type: &Num<E>,
+    encoded_1st_parameter: &Num<E>,
+    encoded_2nd_parameter: &Num<E>,
+    encoded_1st_location: &Num<E>,
+    encoded_2nd_location: &Num<E>,
+) -> Result<(), SynthesisError> {
+    todo!();
 }
 
 fn send_tokens<E: Engine, CS: ConstraintSystem<E>>(
@@ -217,10 +116,59 @@ fn send_tokens<E: Engine, CS: ConstraintSystem<E>>(
     Ok((from_new_amount, to_new_amount))
 }
 
-pub struct EncodedTransaction<E: Engine> {
-    pub sender: Num<E>,
-    pub signature: Num<E>,
-    pub data: Num<E>,
+pub fn recover_state<E: Engine, CS: ConstraintSystem<E>>(
+    cs: &mut CS,
+    new_commit: &Num<E>,
+    state_pub_keys: &[Num<E>; ACC_NUM],
+    state_amounts: &[Num<E>; ACC_NUM],
+    tx_type: &Num<E>,
+    first_parameter: &Num<E>,
+    second_parameter: &Num<E>,
+    first_location: &[Boolean; ACC_DEPTH],
+    second_location: &[Boolean; ACC_DEPTH],
+) -> Result<([Num<E>; ACC_NUM], [Num<E>; ACC_NUM]), SynthesisError> {
+    let mut state_pub_keys = realloc_state(cs, state_pub_keys)?;
+    let mut state_amounts = realloc_state(cs, state_amounts)?;
+
+    let idx1 = get_num_from_boolean(first_location);
+    let idx2 = get_num_from_boolean(second_location);
+
+    if tx_type.get_value().unwrap().is_zero() {
+        state_pub_keys[idx1] = Num::alloc(cs, first_parameter.get_value())?;
+    } else {
+        let mut tmp = state_amounts[idx1].get_value().unwrap();
+        tmp.sub_assign(&second_parameter.get_value().unwrap());
+        state_amounts[idx1] = Num::alloc(cs, Some(tmp))?;
+
+        tmp = state_amounts[idx2].get_value().unwrap();
+        tmp.add_assign(&second_parameter.get_value().unwrap());
+        state_amounts[idx1] = Num::alloc(cs, Some(tmp))?;
+    }
+
+    let pub_keys_commit = hash_commit(cs, &state_pub_keys)?;
+    let amounts_commit = hash_commit(cs, &state_amounts)?;
+    let final_commit = hash_two_numbers(cs, &pub_keys_commit, &amounts_commit)?;
+
+    final_commit.enforce_equal(cs, new_commit)?;
+
+    Ok((state_pub_keys, state_amounts))
+}
+
+pub fn realloc_state<E: Engine, CS: ConstraintSystem<E>>(
+    cs: &mut CS,
+    state: &[Num<E>; ACC_NUM]
+) -> Result<[Num<E>; ACC_NUM], SynthesisError> {
+    let mut res = vec![];
+    for el in state.iter() {
+        res.push(
+            Num::alloc(
+                cs,
+                el.get_value()
+            )?
+        )
+    }
+
+    Ok(res.try_into().unwrap())
 }
 
 pub fn hash_commit<E: Engine, CS: ConstraintSystem<E>>(
